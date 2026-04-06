@@ -71,20 +71,24 @@ module.exports = async function handler(req, res) {
 
       // --- 2. Send email via FormSubmit ---
       const formSubmitPromise = fetch(
-              `https://formsubmit.co/ajax/${process.env.FORMSUBMIT_EMAIL}`,
-        {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", Accept: "application/json" },
-                  body: JSON.stringify({
-                              name,
-                              email,
-                              phone: phone || "לא סופק",
-                              message: message || "",
-                              _source: source || "unknown",
-                              _subject: `ליד חדש מ-${source || "דף נחיתה"}: ${name}`,
-                  }),
-        }
-            );
+            `https://formsubmit.co/ajax/${process.env.FORMSUBMIT_EMAIL}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    phone: phone || "לא סופק",
+                    message: message || "",
+                    _source: source || "unknown",
+                    _subject: `ליד חדש מ-${source || "דף נחיתה"}: ${name}`,
+                }),
+            }
+        ).then(async (r) => {
+            const data = await r.json();
+            if (data.success === "false") throw new Error(data.message || "FormSubmit not activated");
+            return data;
+        });
 
       // Run both in parallel
       const [notionResult, formSubmitResult] = await Promise.allSettled([
@@ -96,6 +100,7 @@ module.exports = async function handler(req, res) {
               success: true,
               notion: notionResult.status === "fulfilled" ? "ok" : "error",
               email: formSubmitResult.status === "fulfilled" ? "ok" : "error",
+            emailError: formSubmitResult.status === "rejected" ? (formSubmitResult.reason?.message || "unknown") : undefined,
       };
 
       if (notionResult.status === "rejected") {
