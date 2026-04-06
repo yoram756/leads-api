@@ -27,9 +27,9 @@ module.exports = async function handler(req, res) {
     try {
           const { name, email, phone, message, source } = req.body;
 
-      if (!name || !email) {
+      if (!name) {
               res.statusCode = 400;
-              return res.end(JSON.stringify({ error: "Name and email are required" }));
+              return res.end(JSON.stringify({ error: "Name is required" }));
       }
 
       // --- 1. Add to Notion ---
@@ -39,9 +39,6 @@ module.exports = async function handler(req, res) {
       const properties = {
               "שם": {
                         title: [{ text: { content: name } }],
-              },
-              "אימייל": {
-                        email: email,
               },
               "הודעה": {
                         rich_text: [{ text: { content: message || "" } }],
@@ -54,7 +51,12 @@ module.exports = async function handler(req, res) {
               },
       };
 
-      // Only add phone if provided (Notion rejects empty string for phone_number)
+        // Only add email if provided (Notion rejects invalid email)
+        if (email) {
+            properties["אימייל"] = { email: email };
+        }
+
+              // Only add phone if provided (Notion rejects empty string for phone_number)
       if (phone) {
               properties["טלפון"] = { phone_number: phone };
       }
